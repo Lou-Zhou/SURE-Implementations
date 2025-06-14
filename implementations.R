@@ -1,4 +1,6 @@
 library(ggplot2)
+#PCA
+
 run_pca <- function(X){
   #Generating principal component analysis using SVD
   scaled_x =  scale(X, center = TRUE, scale = TRUE)
@@ -15,6 +17,8 @@ run_pca <- function(X){
   pc_output = list(sdev = sdevs, rotation = loading_matrix, x = pc_matrix)
   pc_output
 }
+
+#K-Means
 
 run_lloyds <- function(X, k, random_function = complete_random) {
   #pseudo code:
@@ -75,6 +79,8 @@ kpp <- function(X, k){
   centroids
 }
 
+#Hierarchical
+
 get_cluster_distance <- function(cluster1, cluster2, distance_matrix, method = "average") {
   dists <- distance_matrix[unlist(cluster1), unlist(cluster2), drop = FALSE]
   if (method == "average") {
@@ -133,11 +139,31 @@ hierach_cluster <- function(X, method = "average") {
   }
   list(merge = merge_mat, heights = heights)
 }
-X <- matrix(runif(100), ncol = 2)
-hierach_cluster(X)$merge
 
-cbind(hierach_cluster(X)$merge, (X |> dist() |>
-        hclust(method = "complete"))$merge)
+# KDE
 
-cbind(hierach_cluster(X)$heights, (X |> dist() |>
-                                   hclust(method = "complete"))$height)
+sqrt_matrix <- function(X){
+  e_vectors <- eigen(X)$vectors
+  e_values <- eigen(X)$values
+  D_sqrt <- if (length(e_values) == 1) {
+    matrix(sqrt(e_values), 1, 1)
+  } else {
+    diag(sqrt(e_values))
+  }
+  return(e_vectors %*% D_sqrt %*% solve(e_vectors))
+}
+
+kde <- function(x, data, H, K) {
+  H_inv = solve(H)
+  differences <- sweep(data, 2, x, FUN = "-")
+  summation <- sum(apply(differences, 1, function(row)  K(solve(sqrt_matrix(H)) %*% row)))
+  return(1/(nrow(data) * sqrt(det(H))) * summation)
+}
+gaussian_kernel <- function(z) {
+  d <- length(z)
+  
+  const <- (2 * pi)^(-d/2)
+  exponent <- (-1/2) *(t(z) %*% z)
+  
+  return(const * exp(exponent))
+}
